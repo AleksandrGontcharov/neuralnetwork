@@ -8,25 +8,24 @@ import matplotlib.pyplot as plt
 
 
 def load_data(size=200):
-    """Loads the MNIST dataset.
-    # Arguments
-        path: path where to cache the dataset locally
-            (relative to ~/.keras/datasets).
+    """Creates the blobs dataset.
+
     # Returns
-        Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
+        Tuple of Numpy arrays: X, Y.
     """
     # Initialize the X's
     size = int(size)
-    half_size = int(size / 2)
+    first_half = size // 2
+    second_half = size - first_half
     
-    X_2D_blobs = np.ndarray(shape=(size,2))
+    X = np.ndarray(shape=(size,2))
     # Define 2 regions
-    X_2D_blobs[:,0] = np.append(-np.random.rand(half_size)-0.25,np.random.rand(half_size))  # Negative blob X
-    X_2D_blobs[:,1] = np.append(-np.random.rand(half_size)-0.25,np.random.rand(half_size))  # Negative blob Y
+    X[:,0] = np.append(-np.random.rand(first_half)-0.25,np.random.rand(second_half))  # Negative blob X
+    X[:,1] = np.append(-np.random.rand(first_half)-0.25,np.random.rand(second_half))  # Negative blob Y
     # Define the Y's
-    Y_2D_blobs = np.append(np.zeros(half_size),np.ones(half_size))  # Labels
+    Y = np.append(np.zeros(first_half),np.ones(second_half))  # Labels
 
-    return X_2D_blobs, Y_2D_blobs
+    return X, Y
 
 def graph(X,Y):
     plt.scatter(X[:,0], X[:,1], c=Y, s=40, cmap=plt.cm.Spectral)
