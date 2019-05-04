@@ -31,15 +31,15 @@ def graph(X,Y,decision=None):
     else:
         plt.figure(figsize=(15,4))
         plt.scatter(X[:,0], np.zeros(X[:,0].shape), c=Y, cmap='flag', s = 30)
-        plt.title('Binary Labeled Data to Classify\n')
-        plt.ylim(-1,1)
-        plt.xlim(min(X[:,0])-1,max(X[:,0])+1)
+
         plt.grid(alpha=.4,linestyle='--')
-        X_line = np.arange(min(X[:,0])-1, max(X[:,0])-1, (max(X[:,0])-1 - min(X[:,0])-1)/50)
+        X_line = np.arange(min(X[:,0])-1, max(X[:,0])+1, (max(X[:,0])-1 - min(X[:,0])-1)/50)
         X_line_reshape = X_line.reshape(X_line.shape[0],1)
         Y_line = [decision(X_line_reshape[i])[0][0] for i in range(len(X_line_reshape))]
-        
         plt.plot(X_line, Y_line)
+        plt.title('Binary Labeled Data with Boundary \n')
+        plt.ylim(-1,1)
+        plt.xlim(min(X[:,0])-1, max(X[:,0])+1)
         x = np.array(range(100))
 
         plt.show()
