@@ -191,7 +191,7 @@ class Network:
                 layer_input = output
         return z
                   
-    # Forward Propagation Algorith,
+    # Forward Propagation Step
                   
     def forward(self,  X):
         '''
@@ -201,6 +201,8 @@ class Network:
         input_dimension = len(self.layers[self.prefix + str(0)]['neurons'])
         assert input_dimension == X.shape[1], f"The data should be {input_dimension}-dimensional, you provided {X.shape[1]}-dim data"
         
+        # Define activations
+        neuron_outputs = {}
                   
         # reshape the input to a column vector
         layer_input = X.T
@@ -210,6 +212,7 @@ class Network:
             if key[-1] == '0':
                 pass
             else:
+                  
                 # Get weights, biases and activation function
                 weights = layer['weights']
                 biases = layer['biases']
@@ -218,9 +221,38 @@ class Network:
                 z = np.matmul(weights, layer_input) + biases
                 # Apply the activation function
                 output = activation(z)
+                # Append values to dictionary
+                neuron_outputs[key] = {}
+                neuron_outputs[key]['z'] = z
+                neuron_outputs[key]['a'] = output
                 # redefine the input for the next loop iteration
                 layer_input = output
-        return output
+                  
+                  
+        
+        return output, neuron_outputs
+     
+    # Backward Propagation Step
+                  
+    def backward(self,  X, learning_rate):
+        '''
+        Perform a forward bass where X has shape (batch_size, dim)
+        Return an array
+        '''
+        grads = {}
+                  
+        for key, layer in self.layers.items():
+            # Skip the input layer
+            if key[-1] == '0':
+                pass
+            else:
+                  
+                # Append values to dictionary
+                grads[key] = {}
+                grads[key]['dW'] = 1
+                grads[key]['dB'] = 1
+
+        return grads
                   
     # Loss function for a batch of samples
     
@@ -229,14 +261,21 @@ class Network:
             and Y of shape (batch_size, 1)
         """
         number_of_samples = len(Y)
-        Y_hat = self.forward(X)
+        Y_hat, _ = self.forward(X)
         Y_hat = Y_hat.reshape(Y.shape)
         losses = -(np.multiply(Y,np.log(Y_hat)) + np.multiply(1-Y,np.log(1-Y_hat)))
         return np.average(losses)
                   
         
 
-    def train(self,X,Y):
+    def train(self, X, Y):
+        '''
+        Train your network on a given batch of X and y.
+        '''
+        # Get the layer activations
+        layer_activations = self.forward(X)          
+                  
+                  
         pass
             
         
