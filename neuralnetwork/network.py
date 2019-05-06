@@ -22,7 +22,7 @@ class Network:
         activation = None
         weights = np.random.randn(0, 0)     
         biases = np.random.randn(0)
-        biases = biases.reshape(biases.shape[0],1)
+        biases = biases.reshape(biases.shape[0],0)
         self.layers = {layer_name: {'neurons': neurons, 'edges': edges, 'weights': weights, 'activation': activation, 'biases': biases}}
     
     def add_layer(self, number_of_neurons, connections = 'all', activation = 'relu'):
@@ -64,13 +64,17 @@ class Network:
         # Define activation function
         if activation == 'relu':
             activation = self.relu
+            activation_derivative = self.relu_derivative
         elif activation == 'sigmoid':
             activation = self.sigmoid
+            activation_derivative = self.sigmoid_derivative
         elif activation == 'absolute':
             activation = self.absolute
+            activation_derivative = self.absolute_derivative
+
     
         
-        self.layers[layer_name] =  {'neurons': neurons, 'edges': edges, 'weights': weights, 'activation': activation, 'biases': biases}
+        self.layers[layer_name] =  {'neurons': neurons, 'edges': edges, 'weights': weights,  'biases': biases,'activation': activation, 'activation_derivative': activation_derivative}
         
     @property
     def number_of_layers(self):
@@ -124,12 +128,23 @@ class Network:
     def relu(self, x):
         return np.maximum(x,0)
     
+    def relu_derivative(self, x):
+        return np.maximum(np.sign(x),0)
+    
     def sigmoid(self, x):
         return np.divide(1,1+np.exp(-x))
     
+    def sigmoid_derivative(self, x):
+        return self.sigmoid(x)*(1-self.sigmoid(x))
+    
     def absolute(self, x):
         return np.abs(x)
-            
+    
+    def absolute_derivative(self, x):
+        return np.sign(x)
+    
+    
+    
     # Predict function for one sample
                   
     def predict(self,  X):
@@ -196,7 +211,8 @@ class Network:
     def forward(self,  X):
         '''
         Perform a forward bass where X has shape (batch_size, dim)
-        Return an array
+        Returns an array of the last activations and a dictionary containing all neuron activations 
+        before 
         '''
         input_dimension = len(self.layers[self.prefix + str(0)]['neurons'])
         assert input_dimension == X.shape[1], f"The data should be {input_dimension}-dimensional, you provided {X.shape[1]}-dim data"
@@ -210,9 +226,9 @@ class Network:
         for key, layer in self.layers.items():
             # Skip the input layer
             if key[-1] == '0':
-                pass
-            else:
-                  
+                neuron_outputs[key] = {}
+                neuron_outputs[key]['A'] = layer_input
+            else: 
                 # Get weights, biases and activation function
                 weights = layer['weights']
                 biases = layer['biases']
@@ -223,8 +239,8 @@ class Network:
                 output = activation(z)
                 # Append values to dictionary
                 neuron_outputs[key] = {}
-                neuron_outputs[key]['z'] = z
-                neuron_outputs[key]['a'] = output
+                neuron_outputs[key]['Z'] = z
+                neuron_outputs[key]['A'] = output
                 # redefine the input for the next loop iteration
                 layer_input = output
                   
@@ -234,24 +250,53 @@ class Network:
      
     # Backward Propagation Step
                   
-    def backward(self,  X, learning_rate):
+    def backward(self,  X, Y):
         '''
+        Assume final activation is sigmoid and loss is binary crossentropy
         Perform a forward bass where X has shape (batch_size, dim)
         Return an array
+        
         '''
+        # Can be updated later for other losses
+                  
+        # Get the batch size
+        batch_size = X.shape[0]
+                         
+        # Compute dZ dW, dB for output layer
+        Y_hat, neuron_outputs = self.forward(X)
+                  
+        # For now we assume that the loss function is binary crossentropy and final activation is sigmoid
+        dZ = Y_hat - Y  
+    
+        # Initialize gradients        
         grads = {}
                   
-        for key, layer in self.layers.items():
-            # Skip the input layer
-            if key[-1] == '0':
-                pass
-            else:
-                  
-                # Append values to dictionary
-                grads[key] = {}
-                grads[key]['dW'] = 1
-                grads[key]['dB'] = 1
+        # Loop backwards through layers 
+        for layer_number in range(len(self.layers)-1, 0, -1):
 
+            # Update layer names for iteration  
+            current_layer_name = self.prefix + str(layer_number)
+            previous_layer_name = self.prefix + str(layer_number-1)
+                  
+            # Get previous layer's activations
+            A = neuron_outputs[previous_layer_name]['A']
+
+            # Define dW and dB and update gradients
+            grads[current_layer_name] = {}
+            grads[current_layer_name]['dW'] = np.matmul(np.multiply(np.divide(1, batch_size), dZ), A.T)
+            grads[current_layer_name]['dB'] = np.multiply((1/batch_size),np.sum(dZ, axis=1, keepdims=True))
+                  
+            # Calculate dZ for next loop
+            if layer_number >= 2:
+                # Get current layer weights
+                W = self.layers[current_layer_name]['weights']
+                # Get previous layer's activation derivative
+                activation_derivative = self.layers[previous_layer_name]['activation_derivative']
+                # Calculate previous layer Z
+                Z_prev = neuron_outputs[previous_layer_name]['Z']
+                # Calculate dZ for next loop
+                dZ = np.multiply(np.matmul(W.T, dZ), activation_derivative(Z_prev))
+        
         return grads
                   
     # Loss function for a batch of samples
@@ -260,22 +305,54 @@ class Network:
         """ Computes the loss for X of shape (batch_size, dim)
             and Y of shape (batch_size, 1)
         """
-        number_of_samples = len(Y)
+                  
         Y_hat, _ = self.forward(X)
         Y_hat = Y_hat.reshape(Y.shape)
-        losses = -(np.multiply(Y,np.log(Y_hat)) + np.multiply(1-Y,np.log(1-Y_hat)))
+        losses = -(np.multiply(Y,np.log(Y_hat)) + np.multiply(1-Y, np.log(1-Y_hat)))
         return np.average(losses)
                   
+    
+    def binary_crossentropy_loss_derivative(self, X, Y):
+        """ The derivative of the binary crossentropy 
+        (-Y)/Y_hat + (1 - Y)/(1-Y_hat)
+        """
+        Y_hat, _ = self.forward(X)
+        Y_hat = Y_hat.reshape(Y.shape)
+                  
+        return  np.add(np.divide(-Y,Y_hat),np.divide(1-Y,1-Y_hat)).reshape(Y_hat.shape[0],1)
         
 
-    def train(self, X, Y):
+    def train(self, X, Y, learning_rate, num_epochs):
         '''
         Train your network on a given batch of X and y.
         '''
-        # Get the layer activations
-        layer_activations = self.forward(X)          
-                  
-                  
-        pass
-            
+             
         
+        for i in range(1, num_epochs):
+            
+            # Perform a forward and backwardpass with backward function      
+            grads = self.backward(X, Y)
+            # Update the weights for all layers
+            for key, layer in self.layers.items():
+                # Skip the input layer
+                if key[-1] == '0':
+                    pass
+                else:
+                    # get layers' weights and biases
+                    W = layer['weights']
+                    B = layer['biases']  
+
+                    # get gradients for layer's weights and biases
+                    dW = grads[key]['dW']       
+                    dB = grads[key]['dB']   
+
+                    # Perform the update
+                    self.layers[key]['weights'] = W - learning_rate * dW  
+                    self.layers[key]['biases'] = B - learning_rate * dB 
+
+
+                
+                  
+            
+
+    
