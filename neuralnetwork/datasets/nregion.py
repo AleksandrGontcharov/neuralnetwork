@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def load_data(regions=2):
+def load_data(regions=3):
     """Loads the MNIST dataset.
     # Arguments
         path: path where to cache the dataset locally
@@ -15,11 +15,18 @@ def load_data(regions=2):
     # Returns
         Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
     """
-    # Initialize the X's
-    X = np.append(np.append(-np.random.rand(50)-0.25,np.random.rand(50)),np.random.rand(50)+1.25)
+
+    # Initialize list of centers
+    C = []
+    X = np.random.rand(50)
+    Y = np.zeros(50)
+    for n in range(1,regions):
+        X = np.append(X, np.random.rand(50) + 2*n)
+        if n % 2 == 1:
+            C.append(0.5 + 2*n)
+        Y = np.append(Y, np.zeros(50) + (n % 2))
     X = X.reshape(X.shape[0],1)
-    Y = np.append(np.append(np.zeros(50),np.ones(50)),np.zeros(50))
-    return X, Y
+    return X, Y, C
 
 def graph(X,Y,decision=None):
     if decision == None:
