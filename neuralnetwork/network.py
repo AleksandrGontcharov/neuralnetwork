@@ -373,8 +373,8 @@ class Network:
         assert batch_size <= X_train.shape[0], "Ensure the batch size is smaller than training set"      
                   
         # Define batches
-        num_batches = int(np.ceil(200 / 32))
-        batches = [i*32 for i in range(num_batches)]
+        num_batches = int(np.ceil(X_train.shape[0] / batch_size))
+        batches = [i*batch_size for i in range(num_batches)]
         batches.append(len(X_train))
              
         for i in range(num_epochs):

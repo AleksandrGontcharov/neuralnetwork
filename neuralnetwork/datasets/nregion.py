@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def load_data(regions=3, validation = 0.20):
+def load_data(regions=3, validation = 0.20, points=50):
     """Create an n-region dataset with a list of centers and radii 
     corresponding the centers and radii of positively labeled examples.
     # Returns:  `X_train, Y_train, X_val, Y_val, C, R`.
@@ -15,13 +15,13 @@ def load_data(regions=3, validation = 0.20):
 
     # Initialize list of centers
     C = []
-    X = np.random.rand(50)
-    Y = np.zeros(50)
+    X = np.random.rand(points)
+    Y = np.zeros(points)
     for n in range(1,regions):
-        X = np.append(X, np.random.rand(50) + 2*n)
+        X = np.append(X, np.random.rand(points) + 2*n)
         if n % 2 == 1:
             C.append(0.5 + 2*n)
-        Y = np.append(Y, np.zeros(50) + (n % 2))
+        Y = np.append(Y, np.zeros(points) + (n % 2))
     X = X.reshape(X.shape[0],1)
     # Split into training and validation sets
     training_samples = int(len(X)*(1-validation))
