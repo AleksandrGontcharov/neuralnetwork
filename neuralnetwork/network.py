@@ -253,14 +253,14 @@ class Network:
     def backward(self,  X, Y):
         '''
         Assume final activation is sigmoid and loss is binary crossentropy
-        Perform a forward bass where X has shape (batch_size, dim)
+        Perform a forward bass where X has shape (batch, dim)
         Return an array
         
         '''
         # Can be updated later for other losses
                   
         # Get the batch size
-        batch_size = X.shape[0]
+        batch = X.shape[0]
                          
         # Compute dZ dW, dB for output layer
         Y_hat, neuron_outputs = self.forward(X)
@@ -283,8 +283,8 @@ class Network:
 
             # Define dW and dB and update gradients
             grads[current_layer_name] = {}
-            grads[current_layer_name]['dW'] = np.matmul(np.multiply(np.divide(1, batch_size), dZ), A.T)
-            grads[current_layer_name]['dB'] = np.multiply((1/batch_size),np.sum(dZ, axis=1, keepdims=True))
+            grads[current_layer_name]['dW'] = np.matmul(np.multiply(np.divide(1, batch), dZ), A.T)
+            grads[current_layer_name]['dB'] = np.multiply((1/batch),np.sum(dZ, axis=1, keepdims=True))
                   
             # Calculate dZ for next loop
             if layer_number >= 2:
@@ -322,16 +322,17 @@ class Network:
         return  np.add(np.divide(-Y,Y_hat),np.divide(1-Y,1-Y_hat)).reshape(Y_hat.shape[0],1)
         
 
-    def train(self, X, Y, learning_rate, num_epochs):
+    def train(self, X_train, Y_train, learning_rate, num_epochs,validation_data = False, verbose=True):
+                  
         '''
         Train your network on a given batch of X and y.
+        Arguments: validation_data = (X_val,Y_val)
         '''
-             
-        
-        for i in range(1, num_epochs):
-            
+                  
+                  
+        for i in range(num_epochs):
             # Perform a forward and backwardpass with backward function      
-            grads = self.backward(X, Y)
+            grads = self.backward(X_train, Y_train)
             # Update the weights for all layers
             for key, layer in self.layers.items():
                 # Skip the input layer
@@ -349,6 +350,75 @@ class Network:
                     # Perform the update
                     self.layers[key]['weights'] = W - learning_rate * dW  
                     self.layers[key]['biases'] = B - learning_rate * dB 
+                  
+            loss = self.binary_crossentropy_loss(X_train,Y_train)
+            acc = self.accuracy(X_train,Y_train)
+
+                  
+            if verbose:
+                  if validation_data == False:
+                      print(f"loss: {loss:.3f} acc: {acc: 0.0%}")
+                  else:
+                      val_loss = self.binary_crossentropy_loss(validation_data[0],validation_data[1])
+                      val_acc = self.accuracy(validation_data[0],validation_data[1])
+                      print(f"loss: {loss:.3f} acc: {acc: 0.0%} val_loss: {val_loss:.3f} val_acc: {val_acc: 0.0%}")
+    
+    
+    def train_mini_batch(self, X_train, Y_train, learning_rate, num_epochs, batch_size, validation_data = False, verbose=True):
+                  
+        '''
+        Train your network on a given batch of X and y.
+        Arguments: validation_data = (X_val,Y_val)
+        '''
+        assert batch_size <= X_train.shape[0], "Ensure the batch size is smaller than training set"      
+                  
+        # Define batches
+        num_batches = int(np.ceil(200 / 32))
+        batches = [i*32 for i in range(num_batches)]
+        batches.append(len(X_train))
+             
+        for i in range(num_epochs):
+            for index in range(1, len(batches)):
+                low = batches[index-1]
+                high = batches[index]
+                X = X_train[low: high]
+                Y = Y_train[low: high]
+                 # mynetwork.train(X, Y, learning_rate=0.001, num_epochs=1, validation_data = (X_val,Y_val),verbose = False)          
+                # Perform a forward and backwardpass with backward function      
+                grads = self.backward(X, Y)
+                # Update the weights for all layers
+                for key, layer in self.layers.items():
+                    # Skip the input layer
+                    if key[-1] == '0':
+                        pass
+                    else:
+                        # get layers' weights and biases
+                        W = layer['weights']
+                        B = layer['biases']  
+
+                        # get gradients for layer's weights and biases
+                        dW = grads[key]['dW']       
+                        dB = grads[key]['dB']   
+
+                        # Perform the update
+                        self.layers[key]['weights'] = W - learning_rate * dW  
+                        self.layers[key]['biases'] = B - learning_rate * dB 
+
+            loss = self.binary_crossentropy_loss(X_train,Y_train)
+            acc = self.accuracy(X_train,Y_train)
+
+
+            if verbose:
+
+                if validation_data == False:
+                    print(f"loss: {loss:.3f} acc: {acc: 0.0%}")
+                else:
+                    val_loss = self.binary_crossentropy_loss(validation_data[0],validation_data[1])
+                    val_acc = self.accuracy(validation_data[0],validation_data[1])
+                    print(f"loss: {loss:.3f} acc: {acc: 0.0%} val_loss: {val_loss:.3f} val_acc: {val_acc: 0.0%}")
+                  
+    
+                  
     def accuracy(self, X, Y):
         "Computes accuracy of the dataset X with Labels Y"
         Y_hat, _ = self.forward(X)

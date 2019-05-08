@@ -7,13 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def load_data(regions=3):
-    """Loads the MNIST dataset.
-    # Arguments
-        path: path where to cache the dataset locally
-            (relative to ~/.keras/datasets).
-    # Returns
-        Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
+def load_data(regions=3, validation = 0.20):
+    """Create an n-region dataset with a list of centers and radii 
+    corresponding the centers and radii of positively labeled examples.
+    # Returns:  `X_train, Y_train, X_val, Y_val, C, R`.
     """
 
     # Initialize list of centers
@@ -26,7 +23,23 @@ def load_data(regions=3):
             C.append(0.5 + 2*n)
         Y = np.append(Y, np.zeros(50) + (n % 2))
     X = X.reshape(X.shape[0],1)
-    return X, Y, C
+    # Split into training and validation sets
+    training_samples = int(len(X)*(1-validation))
+    validation_samples = len(X) - training_samples
+
+    indices = np.arange(X.shape[0])
+    np.random.shuffle(indices)
+    X = X[indices]
+    Y = Y[indices]
+    X_train = X[:training_samples]
+    Y_train = Y[:training_samples]
+
+    X_val = X[training_samples: training_samples + validation_samples]
+    Y_val = Y[training_samples: training_samples + validation_samples]
+
+
+
+    return X_train, Y_train, X_val, Y_val, C
 
 def graph(X,Y,decision=None):
     if decision == None:
