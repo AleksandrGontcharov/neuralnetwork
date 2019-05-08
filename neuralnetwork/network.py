@@ -349,6 +349,14 @@ class Network:
                     # Perform the update
                     self.layers[key]['weights'] = W - learning_rate * dW  
                     self.layers[key]['biases'] = B - learning_rate * dB 
+    def accuracy(self, X, Y):
+        "Computes accuracy of the dataset X with Labels Y"
+        Y_hat, _ = self.forward(X)
+        Y_hat_pred = [0 if y < 0.5 else 1 for y in Y_hat[0]]
+        accuracy = Y_hat_pred == Y
+        correct_guesses = list(accuracy).count(True)
+        total = len(Y)
+        return correct_guesses / total
 
 
                 
