@@ -23,7 +23,15 @@ class Network:
         weights = np.random.randn(0, 0)     
         biases = np.random.randn(0)
         biases = biases.reshape(biases.shape[0],0)
-        self.layers = {layer_name: {'neurons': neurons, 'edges': edges, 'weights': weights, 'activation': activation, 'biases': biases}}
+        
+        # Initialize trainable parameter matrices
+        
+        weights_trainable = np.ones_like(weights)
+        biases_trainable = np.ones_like(biases)
+        
+        
+        self.layers = {layer_name: {'neurons': neurons, 'edges': edges, 'weights': weights, 'activation': activation, 'biases': biases,
+                                   'weights_trainable': weights_trainable, 'biases_trainable': biases_trainable }}
     
     def add_layer(self, number_of_neurons, connections = 'all', activation = 'relu'):
         """
@@ -72,9 +80,15 @@ class Network:
             activation = self.absolute
             activation_derivative = self.absolute_derivative
 
-    
+        # Initialize trainable parameter matrices
+        weights_trainable = np.ones_like(weights)
+        biases_trainable = np.ones_like(biases)
         
-        self.layers[layer_name] =  {'neurons': neurons, 'edges': edges, 'weights': weights,  'biases': biases,'activation': activation, 'activation_derivative': activation_derivative}
+        self.layers[layer_name] =  {'neurons': neurons, 'edges': edges, 'weights': weights,  'biases': biases,'activation': activation, 'activation_derivative': activation_derivative, 'weights_trainable': weights_trainable, 'biases_trainable': biases_trainable }
+        
+        
+        
+        
         
     @property
     def number_of_layers(self):
@@ -401,8 +415,8 @@ class Network:
                         dB = grads[key]['dB']   
 
                         # Perform the update
-                        self.layers[key]['weights'] = W - learning_rate * dW  
-                        self.layers[key]['biases'] = B - learning_rate * dB 
+                        self.layers[key]['weights'] = W - np.multiply(learning_rate * dW, self.layers[key]['weights_trainable'])
+                        self.layers[key]['biases'] = B - np.multiply(learning_rate * dB, self.layers[key]['biases_trainable'])
 
             loss = self.binary_crossentropy_loss(X_train,Y_train)
             acc = self.accuracy(X_train,Y_train)
@@ -427,8 +441,27 @@ class Network:
         correct_guesses = list(accuracy).count(True)
         total = len(Y)
         return correct_guesses / total
+    
+    # Trainability functions
+                  
+    def train_biases_only(self):
+        """Train only the bias weights"""
+        for key in self.layers.keys():
+            self.layers[key]['weights_trainable'] = np.zeros_like(self.layers[key]['weights_trainable'])
+            self.layers[key]['biases_trainable'] = np.ones_like(self.layers[key]['biases_trainable'])
 
-
+        
+    def train_slopes_only(self):
+        """train only the slope weight (i.e. layers['weights'])"""
+        for key in self.layers.keys():
+            self.layers[key]['weights_trainable'] = np.ones_like(self.layers[key]['weights_trainable'])
+            self.layers[key]['biases_trainable'] = np.zeros_like(self.layers[key]['biases_trainable'])
+                  
+    def train_all(self):
+        """Sets all parameters to trainable"""
+        for key in self.layers.keys():
+            self.layers[key]['weights_trainable'] = np.ones_like(self.layers[key]['weights_trainable'])
+            self.layers[key]['biases_trainable'] = np.ones_like(self.layers[key]['biases_trainable'])
                 
                   
             

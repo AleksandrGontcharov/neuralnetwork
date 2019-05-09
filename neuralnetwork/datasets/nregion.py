@@ -36,8 +36,9 @@ def load_data(regions=3, validation = 0.20, points=50):
 
     X_val = X[training_samples: training_samples + validation_samples]
     Y_val = Y[training_samples: training_samples + validation_samples]
-
-    return X_train, Y_train, X_val, Y_val, C
+    
+    R = [0.5 for i in C]
+    return X_train, Y_train, X_val, Y_val, C, R
 
 
 def load_random_data(validation = 0.20, points=300):
