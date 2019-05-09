@@ -115,7 +115,7 @@ def graph(X,Y,decision=None, padding = 0.2, size=30):
         plt.figure(figsize=(19,1))
         plt.scatter(X[:,0], np.zeros(X[:,0].shape), c=Y, cmap='flag', s = size)
         plt.title('Binary Labeled Data to Classify\n')
-        plt.xlim(min(X[:,0])+padding, max(X[:,0])-padding)
+        plt.xlim(min(X[:,0])-padding, max(X[:,0])+padding)
         plt.show()
     else:
         plt.figure(figsize=(19,4))
@@ -128,7 +128,24 @@ def graph(X,Y,decision=None, padding = 0.2, size=30):
         plt.plot(X_line, Y_line)
         plt.title('Binary Labeled Data with Boundary \n')
         plt.ylim(-1,1)
-        plt.xlim(min(X[:,0])+padding, max(X[:,0])-padding)
+        plt.xlim(min(X[:,0])-padding, max(X[:,0])+padding)
         x = np.array(range(100))
 
         plt.show()
+        
+        
+def mask(X, Y, c, r):
+    ''' Given a dataset X with labels Y,
+    returns Y_mask containing labels 1 in the region centered at with radius r
+    and 0 otherwise
+    '''
+    # Get indices for the elements in the open set (c-r,c+r)
+    indices = np.where((X > c-r) & (X < c+r))
+    
+    # Initialize Y_mask to zeros
+    Y_mask = np.zeros_like(Y)
+    
+    # Set to 1 for the indices
+    Y_mask[indices[0]] = 1
+    
+    return Y_mask

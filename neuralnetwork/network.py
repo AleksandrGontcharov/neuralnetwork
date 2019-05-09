@@ -462,6 +462,18 @@ class Network:
         for key in self.layers.keys():
             self.layers[key]['weights_trainable'] = np.ones_like(self.layers[key]['weights_trainable'])
             self.layers[key]['biases_trainable'] = np.ones_like(self.layers[key]['biases_trainable'])
+                  
+    def train_none(self):
+        """Sets all parameters to trainable"""
+        for key in self.layers.keys():
+            self.layers[key]['weights_trainable'] = np.zeros_like(self.layers[key]['weights_trainable'])
+            self.layers[key]['biases_trainable'] = np.zeros_like(self.layers[key]['biases_trainable'])
+    
+    def reset_weights_to_zero(self):
+        """Sets all parameters to trainable"""
+        for key in self.layers.keys():
+            self.layers[key]['weights'] = np.zeros_like(self.layers[key]['weights'])
+            self.layers[key]['biases'] = np.zeros_like(self.layers[key]['biases'])
                 
                   
             
