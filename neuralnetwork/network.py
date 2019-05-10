@@ -65,8 +65,8 @@ class Network:
                                              
         # Initialize Layer Weights
         
-        weights = np.random.randn(number_of_neurons, previous_number_of_neurons,)
-        biases = np.random.randn(number_of_neurons)
+        weights = np.random.randn(number_of_neurons, previous_number_of_neurons)*0.1
+        biases = np.random.randn(number_of_neurons)*0.1
         biases = biases.reshape(biases.shape[0],1)
         
         # Define activation function
@@ -76,6 +76,9 @@ class Network:
         elif activation == 'sigmoid':
             activation = self.sigmoid
             activation_derivative = self.sigmoid_derivative
+        elif activation == 'sigmoid_10':
+            activation = self.sigmoid_10
+            activation_derivative = self.sigmoid_10_derivative
         elif activation == 'absolute':
             activation = self.absolute
             activation_derivative = self.absolute_derivative
@@ -150,6 +153,13 @@ class Network:
     
     def sigmoid_derivative(self, x):
         return self.sigmoid(x)*(1-self.sigmoid(x))
+                  
+                  
+    def sigmoid_10(self, x):
+        return np.divide(1,1+np.exp(-10*x))
+    
+    def sigmoid_10_derivative(self, x):
+        return self.sigmoid_10(x)*(1-self.sigmoid_10(x))*10
     
     def absolute(self, x):
         return np.abs(x)

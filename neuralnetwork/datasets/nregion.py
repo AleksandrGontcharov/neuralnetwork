@@ -82,7 +82,7 @@ def load_random_regions(regions=3, validation = 0.20, points=50):
     R.insert(0,(C[1]-C[0])/2)
     R.append((C[-1]-C[-2])/2)
 
-    R = [x*0.9 for x in R]
+    R = [x*0.5 for x in R]
 
     # Initialize X and Y
     X = np.random.randn(0)
@@ -127,7 +127,7 @@ def graph(X,Y,decision=None, padding = 0.2, size=30):
         Y_line = [decision(X_line_reshape[i])[0][0] for i in range(len(X_line_reshape))]
         plt.plot(X_line, Y_line)
         plt.title('Binary Labeled Data with Boundary \n')
-        plt.ylim(-1,1)
+        plt.ylim(-10,10)
         plt.xlim(min(X[:,0])-padding, max(X[:,0])+padding)
         x = np.array(range(100))
 
