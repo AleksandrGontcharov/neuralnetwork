@@ -7,7 +7,6 @@ from .activations import relu
 from .optimizers import momentum
 
 
-
 class Network:
 
     """A Network is a directed acyclic graph of layers."""
@@ -38,7 +37,6 @@ class Network:
         """
         # TEMPORARY
         np.random.seed(2)
-        
 
         # Generate layer name
         layer_name = self._prefix + str(self.number_of_layers)
@@ -116,8 +114,8 @@ class Network:
         """
         Perform a forward propagation on a single element x but doesn't apply the final activation
         """
-        x = np.array([x],ndmin=2)
- 
+        x = np.array([x], ndmin=2)
+
         neuron_outputs = self.forward(x)
         highest_layer_name = self._prefix + str(self.number_of_layers - 1)
         return neuron_outputs[highest_layer_name]["Z"].item(0)
@@ -147,18 +145,15 @@ class Network:
         for key, layer in list(self.layers.items())[1:]:
             neuron_outputs[key] = {}
             neuron_outputs[key]["Z"] = (
-                np.matmul(layer["weights"], layer_input)
-                + layer["biases"]
+                np.matmul(layer["weights"], layer_input) + layer["biases"]
             )
-            neuron_outputs[key]["A"] = layer["activation"](
-                neuron_outputs[key]["Z"]
-            )
+            neuron_outputs[key]["A"] = layer["activation"](neuron_outputs[key]["Z"])
 
             # update the input for the next loop iteration
             layer_input = neuron_outputs[key]["A"]
 
         return neuron_outputs
-    
+
     # Backward pass
 
     def backward(self, X, Y):
@@ -216,8 +211,20 @@ class Network:
                 dZ = np.multiply(np.matmul(W.T, dZ), derivative(Z_prev))
 
         return grads
-                      
-    def fit(self, X_train, Y_train, batch_size, num_epochs, learning_rate, validation_data=None, verbose=True, optimizer=momentum, beta=0.9):
+
+    def fit(
+        self,
+        X_train,
+        Y_train,
+        batch_size,
+        num_epochs,
+        learning_rate,
+        validation_data=None,
+        verbose=True,
+        optimizer=momentum,
+        beta=0.9,
+        beta2=0.999,
+    ):
         """ Performs mini batch gradient descent
         
         # Arguments:
@@ -229,58 +236,100 @@ class Network:
             validation data: tuple, contains (X_val, Y_val) as a validation set
             verbose: bool, specifies whether to print updates to the screen  
         """
-                             
-        
+
         loss = self.binary_crossentropy_loss(X_train, Y_train)
         acc = self.accuracy(X_train, Y_train)
-        
+
         desc = f"Loss:{loss:2f} Acc:{acc:2f}"
         if not validation_data is None:
             val_loss = self.binary_crossentropy_loss(
-                        validation_data[0], validation_data[1]
-                     )
+                validation_data[0], validation_data[1]
+            )
             val_acc = self.accuracy(validation_data[0], validation_data[1])
             desc += f" val_loss:{val_loss:2f} val_acc:{val_acc:2f}"
-                      
+
         # initialize the optimized matrices to zeros
         # these are the gradients used for the weight update
         # this dictionary holds the right shapes to perform, momentum, RMSprop and adam
-                      
-        optimized_grads = {key:{"V_dW": np.zeros_like(self.layers[key]["weights"]), \
-                                "V_dB": np.zeros_like(self.layers[key]["biases"])} \
-                               for key in list(self.layers.keys())[1:]} 
-            
+
+        optimized_grads = {
+            key: {
+                "V_dW": np.zeros_like(self.layers[key]["weights"]),
+                "V_dB": np.zeros_like(self.layers[key]["biases"]),
+                "S_dW": np.zeros_like(self.layers[key]["weights"]),
+                "S_dB": np.zeros_like(self.layers[key]["biases"]),
+            }
+            for key in list(self.layers.keys())[1:]
+        }
+
         optimizer, weight_update = optimizer()
-                      
- 
-        for i in tqdm(range(num_epochs), desc=desc):        
-            for X, Y in self.batch_generator(X_train,Y_train, batch_size):                      
+
+        iteration = 1
+        for i in tqdm(range(num_epochs), desc=desc):
+            for X, Y in self.batch_generator(X_train, Y_train, batch_size):
                 # Get gradients
                 grads = self.backward(X, Y)
+                      
                 # propagate through layers LN to L1 and update weights
                 for key, layer in reversed(list(self.layers.items())[1:]):
-                      
+
                     # get gradients for layer's weights and biases
                     dW = grads[key]["dW"]
                     dB = grads[key]["dB"]
-                      
+
                     # get optimized gradients
                     V_dW = optimized_grads[key]["V_dW"]
                     V_dB = optimized_grads[key]["V_dB"]
-                    
+                    S_dW = optimized_grads[key]["S_dW"]
+                    S_dB = optimized_grads[key]["S_dB"]
+
                     # update the dictionary entries of the optimized gradients
-                    V_dW, V_dB = optimizer(dW=dW, dB=dB, V_dW=V_dW, V_dB=V_dB, beta=beta)
-                
-                    # Weight Update
-                    self.layers[key]["weights"] = weight_update(gradient=dW, weights=self.layers[key]["weights"], V_d=V_dW, learning_rate=learning_rate)
-                    self.layers[key]["biases"] = weight_update(gradient=dB, weights=self.layers[key]["biases"], V_d=V_dB, learning_rate=learning_rate)  
-                      
+                    V_dW, V_dB, S_dW, S_dB = optimizer(
+                        dW=dW,
+                        dB=dB,
+                        V_dW=V_dW,
+                        V_dB=V_dB,
+                        S_dW=S_dW,
+                        S_dB=S_dB,
+                        beta=beta,  # default for adam optimizer/momentum/RMSprop 0.9
+                        network=self,
+                        learning_rate=learning_rate,
+                        key=key,
+                        X=X,
+                        Y=Y,
+                        beta2=beta2,  # default for adam optimizer 0.999
+                    )
                     # Update the dictionary
                     optimized_grads[key]["V_dW"] = V_dW
                     optimized_grads[key]["V_dB"] = V_dB
+                    optimized_grads[key]["S_dW"] = S_dW
+                    optimized_grads[key]["S_dB"] = S_dB
 
-      
-               
+                    # Weight Update
+                    self.layers[key]["weights"] = weight_update(
+                        weights=layer["weights"],
+                        gradient=dW,
+                        V_d=V_dW,
+                        S_d=S_dW,
+                        learning_rate=learning_rate,
+                        beta=beta,
+                        beta2=beta2,
+                        iteration=iteration,
+                    )
+                    self.layers[key]["biases"] = weight_update(
+                        weights=layer["biases"],
+                        gradient=dB,
+                        V_d=V_dB,
+                        S_d=S_dB,
+                        learning_rate=learning_rate,
+                        beta=beta,
+                        beta2=beta2,
+                        iteration=iteration,
+                    )
+
+                # update iteration number
+                iteration += 1
+
     def accuracy(self, X, Y):
         "Computes accuracy of the dataset X with Labels Y"
         Y_hat = self.predict(X)
@@ -289,26 +338,25 @@ class Network:
         correct_guesses = list(accuracy).count(True)
         total = len(Y)
         return correct_guesses / total
-    
+
     @staticmethod
-    def batch_generator(X_train,Y_train, batch_size):
+    def batch_generator(X_train, Y_train, batch_size):
         num_batches = int(np.ceil(X_train.shape[0] / batch_size))
-        # Indices for batches              
+        # Indices for batches
         batches = [i * batch_size for i in range(num_batches)]
-        batches.append(len(X_train))   
+        batches.append(len(X_train))
         for index in range(1, len(batches)):
-    
-                # get batch indices
-                low = batches[index - 1]
-                high = batches[index]
-                      
-                # Define mini batch
-                X = X_train[low:high]
-                Y = Y_train[low:high]
-                      
-                yield X, Y
-                      
-                      
+
+            # get batch indices
+            low = batches[index - 1]
+            high = batches[index]
+
+            # Define mini batch
+            X = X_train[low:high]
+            Y = Y_train[low:high]
+
+            yield X, Y
+
     def binary_crossentropy_loss(self, X, Y):
         """ Computes the loss for X of shape (batch_size, dim)
             and Y of shape (batch_size, 1)
@@ -319,8 +367,7 @@ class Network:
             np.multiply(Y, np.log(Y_hat)) + np.multiply(1 - Y, np.log(1 - Y_hat))
         )
         return np.average(losses)
-                
-                      
+
     def predict(self, X):
         """Returns the final layer of the neural network for
         an input of size (batch_size, dim)
@@ -328,10 +375,8 @@ class Network:
         neuron_outputs = self.forward(X)
         highest_layer_name = self._prefix + str(self.number_of_layers - 1)
         return neuron_outputs[highest_layer_name]["A"]
-                      
-                      
-                      
-     # Trainability functions
+
+    # Trainability functions
 
     def train_biases_only(self):
         """Train only the bias weights"""
@@ -378,4 +423,3 @@ class Network:
         for key, layer in list(self.layers.items())[1:]:
             self.layers[key]["weights"] = np.zeros_like(self.layers[key]["weights"])
             self.layers[key]["biases"] = np.zeros_like(self.layers[key]["biases"])
-
