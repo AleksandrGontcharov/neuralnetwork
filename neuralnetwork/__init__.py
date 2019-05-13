@@ -1,1 +1,1 @@
-from .network_new import Network
+from .network import Network
