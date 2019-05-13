@@ -4,9 +4,12 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from .activations import relu
+from .optimizers import momentum
+
 
 
 class Network:
+
     """A Network is a directed acyclic graph of layers."""
 
     def __init__(self, input_dim: int) -> None:
@@ -24,6 +27,7 @@ class Network:
         self.layers = OrderedDict({layer_name: {"neurons": input_dim}})
 
     def add_layer(self, number_of_neurons: int, activation=relu) -> None:
+
         """Adds a hidden layers with specified number_of_neurons and activation
         
         A layer includes: number of layers, weights, biases, and activation
@@ -32,6 +36,9 @@ class Network:
             number_of_neurons: int, represents the number of neurons in the layer
             activation: str, specifies the activation function for the layer
         """
+        # TEMPORARY
+        np.random.seed(2)
+        
 
         # Generate layer name
         layer_name = self._prefix + str(self.number_of_layers)
@@ -210,7 +217,7 @@ class Network:
 
         return grads
                       
-    def fit(self, X_train, Y_train, batch_size, num_epochs, learning_rate, validation_data=None, verbose=True):
+    def fit(self, X_train, Y_train, batch_size, num_epochs, learning_rate, validation_data=None, verbose=True, optimizer=momentum, beta=0.9):
         """ Performs mini batch gradient descent
         
         # Arguments:
@@ -222,11 +229,8 @@ class Network:
             validation data: tuple, contains (X_val, Y_val) as a validation set
             verbose: bool, specifies whether to print updates to the screen  
         """
-                      
-        # Define batches
-                      
-        # Initialize batch generator
-        batch = self.batch_generator(X_train,Y_train, batch_size) 
+                             
+        
         loss = self.binary_crossentropy_loss(X_train, Y_train)
         acc = self.accuracy(X_train, Y_train)
         
@@ -238,28 +242,43 @@ class Network:
             val_acc = self.accuracy(validation_data[0], validation_data[1])
             desc += f" val_loss:{val_loss:2f} val_acc:{val_acc:2f}"
                       
+        # initialize the optimized matrices to zeros
+        # these are the gradients used for the weight update
+        # this dictionary holds the right shapes to perform, momentum, RMSprop and adam
                       
-        for i in tqdm(range(num_epochs), desc=desc):
-            # Calculate loss
+        optimized_grads = {key:{"V_dW": np.zeros_like(self.layers[key]["weights"]), \
+                                "V_dB": np.zeros_like(self.layers[key]["biases"])} \
+                               for key in list(self.layers.keys())[1:]} 
             
+        optimizer, weight_update = optimizer()
                       
-            for X, Y in batch:                      
+ 
+        for i in tqdm(range(num_epochs), desc=desc):        
+            for X, Y in self.batch_generator(X_train,Y_train, batch_size):                      
                 # Get gradients
                 grads = self.backward(X, Y)
-                
                 # propagate through layers LN to L1 and update weights
                 for key, layer in reversed(list(self.layers.items())[1:]):
-                    # get layers' weights and biases
-                    W = layer["weights"]
-                    B = layer["biases"]
-
+                      
                     # get gradients for layer's weights and biases
                     dW = grads[key]["dW"]
                     dB = grads[key]["dB"]
+                      
+                    # get optimized gradients
+                    V_dW = optimized_grads[key]["V_dW"]
+                    V_dB = optimized_grads[key]["V_dB"]
+                    
+                    # update the dictionary entries of the optimized gradients
+                    V_dW, V_dB = optimizer(dW=dW, dB=dB, V_dW=V_dW, V_dB=V_dB, beta=beta)
+                
+                    # Weight Update
+                    self.layers[key]["weights"] = weight_update(gradient=dW, weights=self.layers[key]["weights"], V_d=V_dW, learning_rate=learning_rate)
+                    self.layers[key]["biases"] = weight_update(gradient=dB, weights=self.layers[key]["biases"], V_d=V_dB, learning_rate=learning_rate)  
+                      
+                    # Update the dictionary
+                    optimized_grads[key]["V_dW"] = V_dW
+                    optimized_grads[key]["V_dB"] = V_dB
 
-                    # Perform the update
-                    self.layers[key]["weights"] = W - np.multiply(learning_rate * dW, self.layers[key]["weights_trainable"])
-                    self.layers[key]["biases"] = B - np.multiply(learning_rate * dB, self.layers[key]["biases_trainable"])
       
                
     def accuracy(self, X, Y):
