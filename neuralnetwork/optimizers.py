@@ -70,7 +70,7 @@ def RMSprop():
         V_d = kwargs["V_d"]
         gradient = kwargs["gradient"]  # either dW or dB
 
-        weights = weights - learning_rate * np.divide(gradient, np.sqrt(V_d) + 10e-08)
+        weights = weights - learning_rate * np.divide(gradient, np.sqrt(V_d) + 1e-08)
 
         return weights
 
@@ -169,7 +169,7 @@ def adam():
         V_d = V_d / (1 - beta1 ** iteration)
         S_d = S_d / (1 - beta2 ** iteration)
 
-        weights = weights - learning_rate * np.divide(V_d, np.sqrt(S_d) + 10e-08)
+        weights = weights - learning_rate * np.divide(V_d, np.sqrt(S_d) + 1e-08)
 
         return weights
 
