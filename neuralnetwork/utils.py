@@ -25,5 +25,9 @@ def build_scoop_network_1D(C: list,R: list):
     mynetwork.layers['L3']['biases'] = -min(R)
     
     return mynetwork
+
+
+
+
     
     

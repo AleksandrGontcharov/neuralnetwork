@@ -419,7 +419,16 @@ class Network:
             )
 
     def reset_weights_to_zero(self):
-        """Sets all parameters to trainable"""
+        """set all weights to zero"""
         for key, layer in list(self.layers.items())[1:]:
             self.layers[key]["weights"] = np.zeros_like(self.layers[key]["weights"])
             self.layers[key]["biases"] = np.zeros_like(self.layers[key]["biases"])
+                      
+                      
+    def reinitialize_all_weights(self):
+        # TEMPORARY
+        np.random.seed(5)
+        for key, layer in list(self.layers.items())[1:]:
+            self.layers[key]["weights"] = np.random.randn(self.layers[key]["weights"].shape[0], self.layers[key]["weights"].shape[1])
+            self.layers[key]["biases"] =  np.random.randn(self.layers[key]["biases"].shape[0], self.layers[key]["biases"].shape[1])
+                      
