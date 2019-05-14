@@ -153,10 +153,40 @@ class Network:
             layer_input = neuron_outputs[key]["A"]
 
         return neuron_outputs
-
+        
+    def binary_crossentropy_loss(self, X, Y, regularization=None, lambd=0.1):
+        """ Computes the loss for X of shape (batch_size, dim)
+            and Y of shape (batch_size, 1)
+        """
+        Y_hat = self.predict(X)
+        Y_hat = Y_hat.reshape(Y.shape)
+        losses = -(
+            np.multiply(Y, np.log(Y_hat)) + np.multiply(1 - Y, np.log(1 - Y_hat))
+        )
+                      
+        #Regularization Terms  
+                      
+        if regularization == None:
+            regularization_term = 0
+        if regularization == "Scoop": # This only works neurons in L1 is the same as in L2
+            # Get centers
+            centers = np.squeeze(self.layers['L1']['biases'])
+            num_centers = centers.shape[0]
+            tuples = [(i,j) for i in range(num_centers) for j in range(num_centers) if i < j]
+            # Get radii
+            radii = np.squeeze(self.layers['L2']['biases'])
+            
+            regularization_term = 0
+                      
+            for tupl in tuples:
+                i, j = tupl
+                regularization_term += max(radii[i] + radii[j] - abs(centers[i] - centers[j]),0) 
+                      
+        return np.average(losses)+lambd*regularization_term
+    
     # Backward pass
-
-    def backward(self, X, Y):
+                      
+    def backward(self, X, Y, regularization=None, lambd=0.1):
         """ Do a backward pass for batch X  and binary labels Y and return 
         a dictionary grads of gradients.
         
@@ -170,8 +200,7 @@ class Network:
         neuron_outputs = self.forward(X)
 
         # Y_hat is the activation of the final layer
-        highest_layer_name = self._prefix + str(self.number_of_layers - 1)
-        Y_hat = neuron_outputs[highest_layer_name]["A"]
+        Y_hat = self.predict(X)
 
         # For now we assume that the loss function is binary crossentropy and final activation is sigmoid
         dZ = Y_hat - Y
@@ -209,6 +238,42 @@ class Network:
                 Z_prev = neuron_outputs[prev_layer_name]["Z"]
                 # Calculate dZ for next loop
                 dZ = np.multiply(np.matmul(W.T, dZ), derivative(Z_prev))
+                      
+                      
+        # Regularization 
+        if regularization == "Scoop": # This only works neurons in L1 is the same as in L2
+            # Get centers
+            centers = self.layers['L1']['biases']
+            num_centers = centers.shape[0]
+            tuples = [(i,j) for i in range(num_centers) for j in range(num_centers) if i < j]
+
+            # Get radii
+            radii = self.layers['L2']['biases']
+            
+            # Accumulate grads for the radii
+            dR = np.zeros_like(radii)
+            for k in range(radii.shape[0]):
+                sub_tuple = [tupl for tupl in tuples if k in tupl]
+                for elem in sub_tuple:
+                    i, j = elem
+                    dR[k,0] += max(radii[i] + radii[j] - abs(centers[i] - centers[j]),0) 
+                      
+
+            # Punish the radii
+            grads['L2']['dB'] += np.multiply(dR, lambd)
+                      
+            # Accumulate grads for the centers
+            dC = np.zeros_like(radii)
+            for k in range(radii.shape[0]):
+                sub_tuple = [tupl for tupl in tuples if k in tupl]
+                for elem in sub_tuple:
+                    i, j = elem
+                    dC[k,0] += max(radii[i] + radii[j] - abs(centers[i] - centers[j]),0)
+                      
+
+                      
+            # Punish the centers
+            grads['L1']['dB'] += np.multiply(dC, lambd)
 
         return grads
 
@@ -220,10 +285,11 @@ class Network:
         num_epochs,
         learning_rate,
         validation_data=None,
-        verbose=True,
         optimizer=momentum,
         beta=0.9,
         beta2=0.999,
+        regularization=None,
+        lambd = 0.1,
     ):
         """ Performs mini batch gradient descent
         
@@ -234,16 +300,20 @@ class Network:
             num_epochs: int, specifies the number of epochs to train the neural network
             learning_rate: float, specifies the learning rate for gradient descent
             validation data: tuple, contains (X_val, Y_val) as a validation set
-            verbose: bool, specifies whether to print updates to the screen  
+            optimizer: func, the optimizer for gradient descent, found in optimizers.py 
+            beta: float, this is used in many optimizers
+            beta2: float, this is used in the adam optimizer
+            regularization: can be "L2" or "Scoop" (might try others later)
+            lambd: float, regularization parameter
         """
 
-        loss = self.binary_crossentropy_loss(X_train, Y_train)
+        loss = self.binary_crossentropy_loss(X_train, Y_train, regularization=regularization, lambd=lambd)
         acc = self.accuracy(X_train, Y_train)
 
         desc = f"Loss:{loss:2f} Acc:{acc:2f}"
         if not validation_data is None:
             val_loss = self.binary_crossentropy_loss(
-                validation_data[0], validation_data[1]
+                validation_data[0], validation_data[1], regularization = regularization, lambd=lambd
             )
             val_acc = self.accuracy(validation_data[0], validation_data[1])
             desc += f" val_loss:{val_loss:2f} val_acc:{val_acc:2f}"
@@ -261,14 +331,15 @@ class Network:
             }
             for key in list(self.layers.keys())[1:]
         }
-
+                      
+        # Unpack the optimizer and weight update
         optimizer, weight_update = optimizer()
 
         iteration = 1
         for i in tqdm(range(num_epochs), desc=desc):
             for X, Y in self.batch_generator(X_train, Y_train, batch_size):
                 # Get gradients
-                grads = self.backward(X, Y)
+                grads = self.backward(X, Y, regularization = regularization, lambd=lambd)
                       
                 # propagate through layers LN to L1 and update weights
                 for key, layer in reversed(list(self.layers.items())[1:]):
@@ -306,7 +377,7 @@ class Network:
                     optimized_grads[key]["S_dB"] = S_dB
 
                     # Weight Update
-                    self.layers[key]["weights"] = weight_update(
+                    self.layers[key]["weights"] -= np.multiply(self.layers[key]["weights_trainable"],weight_update(
                         weights=layer["weights"],
                         gradient=dW,
                         V_d=V_dW,
@@ -315,8 +386,8 @@ class Network:
                         beta=beta,
                         beta2=beta2,
                         iteration=iteration,
-                    )
-                    self.layers[key]["biases"] = weight_update(
+                    ))
+                    self.layers[key]["biases"] -= np.multiply(self.layers[key]["biases_trainable"],weight_update(
                         weights=layer["biases"],
                         gradient=dB,
                         V_d=V_dB,
@@ -325,7 +396,7 @@ class Network:
                         beta=beta,
                         beta2=beta2,
                         iteration=iteration,
-                    )
+                    ))
 
                 # update iteration number
                 iteration += 1
@@ -356,17 +427,7 @@ class Network:
             Y = Y_train[low:high]
 
             yield X, Y
-
-    def binary_crossentropy_loss(self, X, Y):
-        """ Computes the loss for X of shape (batch_size, dim)
-            and Y of shape (batch_size, 1)
-        """
-        Y_hat = self.predict(X)
-        Y_hat = Y_hat.reshape(Y.shape)
-        losses = -(
-            np.multiply(Y, np.log(Y_hat)) + np.multiply(1 - Y, np.log(1 - Y_hat))
-        )
-        return np.average(losses)
+                      
 
     def predict(self, X):
         """Returns the final layer of the neural network for

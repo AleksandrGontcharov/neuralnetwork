@@ -27,7 +27,6 @@ def momentum():
         """ Rule on how to update the weights using this optimizer
         with bias correction!
         """
-        weights = kwargs["weights"]
         learning_rate = kwargs["learning_rate"]
         V_d = kwargs["V_d"]
         beta = kwargs["beta"]
@@ -38,9 +37,9 @@ def momentum():
         else:
             correction = 1
 
-        weights = weights - learning_rate * (V_d) / correction
+        update =  learning_rate * (V_d) / correction
 
-        return weights
+        return update
 
     return optimizer, weight_update
 
@@ -65,14 +64,13 @@ def RMSprop():
     def weight_update(**kwargs):
         """ Rule on how to update the weights using this optimizer
         """
-        weights = kwargs["weights"]
         learning_rate = kwargs["learning_rate"]
         V_d = kwargs["V_d"]
         gradient = kwargs["gradient"]  # either dW or dB
 
-        weights = weights - learning_rate * np.divide(gradient, np.sqrt(V_d) + 1e-08)
+        update = learning_rate * np.divide(gradient, np.sqrt(V_d) + 1e-08)
 
-        return weights
+        return update
 
     return optimizer, weight_update
 
@@ -120,13 +118,12 @@ def nesterov_momentum():
     def weight_update(**kwargs):
         """ Rule on how to update the weights using this optimizer
         """
-        weights = kwargs["weights"]
         learning_rate = kwargs["learning_rate"]
         V_d = kwargs["V_d"]
 
-        weights = weights - learning_rate * V_d
+        update = learning_rate * V_d
 
-        return weights
+        return update
 
     return optimizer, weight_update
 
@@ -156,7 +153,6 @@ def adam():
     def weight_update(**kwargs):
         """ Rule on how to update the weights using this optimizer
         """
-        weights = kwargs["weights"]
         learning_rate = kwargs["learning_rate"]
         V_d = kwargs["V_d"]
         S_d = kwargs["S_d"]
@@ -169,8 +165,8 @@ def adam():
         V_d = V_d / (1 - beta1 ** iteration)
         S_d = S_d / (1 - beta2 ** iteration)
 
-        weights = weights - learning_rate * np.divide(V_d, np.sqrt(S_d) + 1e-08)
+        update =  learning_rate * np.divide(V_d, np.sqrt(S_d) + 1e-08)
 
-        return weights
+        return update
 
     return optimizer, weight_update
