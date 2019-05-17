@@ -287,8 +287,6 @@ class Network:
                     i, j = elem
                     dC[k,0] += max(radii[i] + radii[j] - abs(centers[i] - centers[j]),0)
                       
-
-                      
             # Punish the centers
             grads['L1']['dB'] += np.multiply(dC, lambd)
 
