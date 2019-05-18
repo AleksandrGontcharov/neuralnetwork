@@ -124,6 +124,17 @@ class Network:
         neuron_outputs = self.forward(x)
         highest_layer_name = self._prefix + str(self.number_of_layers - 1)
         return neuron_outputs[highest_layer_name]["Z"].item(0)
+                      
+    def predict(self, X):
+        """Returns the final layer of the neural network for
+        an input of size (batch_size, dim)
+        
+        # Arguments:
+            X: numpy.ndarray, with shape (num_examples, dim) - input examples
+        """
+        neuron_outputs = self.forward(X)
+        highest_layer_name = self._prefix + str(self.number_of_layers - 1)
+        return neuron_outputs[highest_layer_name]["A"]
 
     # Forward pass
 
@@ -151,7 +162,7 @@ class Network:
         # propagate through layers L1 to LN
         for key, layer in list(self.layers.items())[1:]:
             neuron_outputs[key] = {}
-            # linear component Z = weights*previous activations + biases 
+            # linear component Z = weights*previous_activations + biases 
             neuron_outputs[key]["Z"] = (
                 np.matmul(layer["weights"], layer_input) + layer["biases"]
             )
@@ -165,7 +176,7 @@ class Network:
         
     def binary_crossentropy_loss(self, X, Y, regularization=None, lambd=0.1):
         """ Computes the binary crossentropy loss for X of shape (batch_size, dim)
-        and Y of shape (batch_size, 1).
+        and Y of shape (batch_size,).
         
         # Arguments:
             X: numpy.ndarray, with shape (num_examples, dim) - input examples
@@ -215,10 +226,13 @@ class Network:
 
         # Compute dZ dW, dB for output layer
         neuron_outputs = self.forward(X)
+                      
+        # Get output layer's activation derivative
+        #self.layers[highest_layer_name]["derivative"]
 
         # Y_hat is the activation of the final layer
         Y_hat = self.predict(X)
-
+                                     
         # For now we assume that the loss function is binary crossentropy and final activation is sigmoid
         dZ = Y_hat - Y
 
@@ -356,7 +370,7 @@ class Network:
                 # Get gradients
                 grads = self.backward(X, Y, regularization = regularization, lambd=lambd)
                       
-                # propagate through layers LN to L1 and update weights
+                # propagate through layers L1 to LN and update weights
                 for key, layer in reversed(list(self.layers.items())[1:]):
 
                     # get gradients for layer's weights and biases
@@ -385,6 +399,7 @@ class Network:
                         Y=Y,
                         beta2=beta2,  # default for adam optimizer 0.999
                     )
+                      
                     # Update the dictionary
                     optimized_grads[key]["V_dW"] = V_dW
                     optimized_grads[key]["V_dB"] = V_dB
@@ -432,6 +447,9 @@ class Network:
 
     @staticmethod
     def batch_generator(X_train, Y_train, batch_size):
+        ## TO DO - SHUFFLE INDICES BEFORE CREATING BATCHES              
+                      
+                      
         num_batches = int(np.ceil(X_train.shape[0] / batch_size))
         # Indices for batches
         batches = [i * batch_size for i in range(num_batches)]
@@ -449,16 +467,7 @@ class Network:
             yield X, Y
                       
 
-    def predict(self, X):
-        """Returns the final layer of the neural network for
-        an input of size (batch_size, dim)
-        
-        # Arguments:
-            X: numpy.ndarray, with shape (num_examples, dim) - input examples
-        """
-        neuron_outputs = self.forward(X)
-        highest_layer_name = self._prefix + str(self.number_of_layers - 1)
-        return neuron_outputs[highest_layer_name]["A"]
+
 
     # Trainability functions
 
