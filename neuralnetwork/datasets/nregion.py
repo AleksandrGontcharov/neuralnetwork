@@ -110,7 +110,7 @@ def load_random_regions(regions=3, validation = 0.20, points=50):
     R = R[1:][::2]
     return X_train, Y_train, X_val, Y_val, C, R
 
-def graph(X,Y,decision=None, padding = 0.2, size=30):
+def graph(X,Y,decision=None, padding = 0.2, size=30, ylim=1):
     if decision == None:
         plt.figure(figsize=(19,1))
         plt.scatter(X[:,0], np.zeros(X[:,0].shape), c=Y, cmap='flag', s = size)
@@ -127,7 +127,7 @@ def graph(X,Y,decision=None, padding = 0.2, size=30):
         Y_line = [decision(X_line_reshape[i]) for i in range(len(X_line_reshape))]
         plt.plot(X_line, Y_line)
         plt.title('Binary Labeled Data with Boundary \n')
-        plt.ylim(-10,10)
+        plt.ylim(-ylim,ylim)
         plt.xlim(min(X[:,0])-padding, max(X[:,0])+padding)
         x = np.array(range(100))
 

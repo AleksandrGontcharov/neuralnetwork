@@ -461,3 +461,29 @@ class Network:
             self.layers[key]["weights"] = np.random.randn(self.layers[key]["weights"].shape[0], self.layers[key]["weights"].shape[1])
             self.layers[key]["biases"] =  np.random.randn(self.layers[key]["biases"].shape[0], self.layers[key]["biases"].shape[1])
                       
+                      
+    # Initialization Methods:
+    def scoop_initialization(self, xmin, xmax, type='uniform'):
+        """Initializes all the weights in a 1-D network
+        """
+        # length of interval
+        length = xmax - xmin
+        
+        # Get number of centers:
+        number_of_centers = self.layers['L1']['weights'].shape[0]              
+        
+        # define centers 
+        C = [xmin + length* (i) /(number_of_centers-1) for i in range(number_of_centers)]
+        # define radii
+        R = [(length / (number_of_centers-1)) / 2 for i in range(number_of_centers)]
+        # the slopes
+        self.layers['L1']['weights'] = np.ones_like(self.layers['L1']['weights'])
+        # the centers
+        self.layers['L1']['biases'] = -np.array(C).reshape(self.layers['L1']['biases'].shape)
+        # cutting off relationship connections
+        self.layers['L2']['weights'] = -np.identity(self.layers['L2']['weights'].shape[0], dtype=None)
+        # the radii
+        self.layers['L2']['biases'] = np.array(R).reshape(self.layers['L2']['biases'].shape)
+        self.layers['L3']['weights'] = np.ones_like(self.layers['L3']['weights'])
+        self.layers['L3']['biases'] = np.zeros_like(self.layers['L3']['biases'])
+                      
