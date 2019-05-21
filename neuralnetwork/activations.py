@@ -16,8 +16,8 @@ def sigmoid():
     def activation(x):
         return np.divide(1, 1 + np.exp(-x))
 
-    def derivative(x):
-        return self.sigmoid(x) * (1 - self.sigmoid(x))
+    def derivative(x, activation = activation):
+        return activation(x) * (1 - activation(x))
 
     return activation, derivative
 
