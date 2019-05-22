@@ -289,7 +289,7 @@ class Network:
         reg_loss = 0              
         if regularization != None:
             _, regularization_loss = regularization()
-            reg_loss =  regularization_loss(mynetwork=self, batch_size=batch_size, lambd=lambd)
+            reg_loss =  regularization_loss(mynetwork=self, batch_size=X_train.shape[0], lambd=lambd)
 
         loss = loss_func(Y=Y_train, Y_hat=self.predict(X_train))+reg_loss
         acc = self.accuracy(X_train, Y_train)
