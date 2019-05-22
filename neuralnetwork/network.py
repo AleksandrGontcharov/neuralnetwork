@@ -167,7 +167,7 @@ class Network:
     
     # Backward pass
                       
-    def backward(self, X, Y, loss_function=binary_crossentropy_loss):
+    def backward(self, X, Y, **kwargs):
         """ Do a backward pass for batch X and binary labels Y and return 
         a dictionary grads of gradients.
         
@@ -175,10 +175,19 @@ class Network:
             X: numpy.ndarray, with shape (num_examples, dim) - input examples
             Y: numpy.ndarray, with shape (num_examples, ) - binary labels
         """
+        #Unpack kwargs
+        loss_function = kwargs['loss_function']
+
+
+           
+        # unpack loss function and derivative
+        _, loss_derivative = loss_function()
+                      
+
                       
         # Get the batch size
         batch = X.shape[0]
-
+        
         # Compute dZ dW, dB for output layer
         neuron_outputs = self.forward(X)
         highest_layer_name = self._prefix + str(self.number_of_layers - 1)
@@ -187,9 +196,7 @@ class Network:
         Y_hat   = neuron_outputs[highest_layer_name]["A"]
         # Get last activation derivative
         last_activation_derivative = self.layers[highest_layer_name]['derivative']
-                      
-        # unpack loss function and derivative
-        _, loss_derivative = loss_function() 
+
                       
         # Get dZ of final activation
         dZ = np.multiply(loss_derivative(Y = Y, Y_hat = Y_hat), last_activation_derivative(final_Z))
@@ -198,8 +205,6 @@ class Network:
 #         if loss_function == binary_crossentropy_lossand and last_activation_derivative == 'sigmoid derivative':
 #                 dZ = Y_hat - Y
                       
-            
-
         # Initialize gradients
         grads = {}
 
@@ -233,8 +238,20 @@ class Network:
                 Z_prev = neuron_outputs[prev_layer_name]["Z"]
                 # Calculate dZ for next loop
                 dZ = np.multiply(np.matmul(W.T, dZ), derivative(Z_prev))
+                 
+                 
                       
-        return grads
+        # Add regularization_grads to grads               
+        regularization = kwargs['regularization']
+        lambd = kwargs['lambd']
+        if regularization  == None:
+            return grads
+        else:
+            # Unpack regularization
+            regularization_grads, _ = regularization()
+            # Update gradients
+            grads = regularization_grads(grads=grads, batch_size=batch, lambd=lambd)         
+            return grads
 
     def fit(
         self,
@@ -247,7 +264,9 @@ class Network:
         validation_data=None,
         optimizer=momentum,
         beta=0.9,
-        beta2=0.999
+        beta2=0.999,
+        regularization=None,
+        lambd = 0.1,
     ):
         """ Performs mini batch gradient descent
         
@@ -264,15 +283,21 @@ class Network:
         """
                       
         # Unpack the loss function
-        loss_function, _ = loss_function()
+        loss_func, _ = loss_function()
+        
+        # Update the loss function if regularization is used:
+        reg_loss = 0              
+        if regularization != None:
+            _, regularization_loss = regularization()
+            reg_loss =  regularization_loss(mynetwork=self, batch_size=batch_size, lambd=lambd)
 
-        loss = loss_function(Y=Y_train, Y_hat=self.predict(X_train))
+        loss = loss_func(Y=Y_train, Y_hat=self.predict(X_train))+reg_loss
         acc = self.accuracy(X_train, Y_train)
 
         desc = f"Loss:{loss:2f} Acc:{acc:2f}"
         if not validation_data is None:
-            val_loss = loss_function(
-                Y = validation_data[1], Y_hat=self.predict(validation_data[0]))
+            val_loss = loss_func(
+                Y = validation_data[1], Y_hat=self.predict(validation_data[0]))+reg_loss
             val_acc = self.accuracy(validation_data[0], validation_data[1])
             desc += f" val_loss:{val_loss:2f} val_acc:{val_acc:2f}"
 
@@ -297,7 +322,7 @@ class Network:
         for i in tqdm(range(num_epochs), desc=desc):
             for X, Y in self.batch_generator(X_train, Y_train, batch_size):
                 # Get gradients
-                grads = self.backward(X, Y)
+                grads = self.backward(X=X, Y=Y, loss_function=loss_function, regularization=regularization, lambd=lambd)
                       
                 # propagate through layers LN to L1 and update weights
                 for key, layer in reversed(list(self.layers.items())[1:]):

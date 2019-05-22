@@ -74,7 +74,7 @@ def RMSprop():
 
     return optimizer, weight_update
 
-
+# Needs some work 
 def nesterov_momentum():
     """ Not sure if implementation is correct
     """
