@@ -125,6 +125,17 @@ class Network:
         neuron_outputs = self.forward(x)
         highest_layer_name = self._prefix + str(self.number_of_layers - 1)
         return neuron_outputs[highest_layer_name]["Z"].item(0)
+                      
+    def predict_threshold(self, X):
+        """Perform a forward propagation on a single element x but 
+        doesn't apply the final activation.
+        
+        # Arguments:
+            x: float, represents the number of neurons in the layer
+        """
+        probability = self.predict(X)
+        output =  1 if (probability> 0.5) else 0
+        return output
 
     # Forward pass
 

@@ -51,6 +51,30 @@ def load_data(size=300, factor=5):
 
     return X, Y
 
+
+
+
+def load_data_multiple_circles(size=200, number_of_blobs = 2):
+    """Creates the blobs dataset.
+
+    # Returns
+        Tuple of Numpy arrays: X, Y.
+    """
+    X, Y = load_data(size=size)
+    # Initialize the X's
+    x_min, x_max = X[:,0].min(), X[:,0].max()
+    y_min, y_max = X[:,1].min(), X[:,1].max()
+    x_length = x_max - x_min
+    x_width = y_max - y_min
+    
+    X2 = X + 2*x_length
+    X_new = np.concatenate((X,X2))
+    Y_new = np.concatenate((Y,Y))
+
+
+
+    return X_new, Y_new
+
 def graph(X,Y):
     plt.scatter(X[:,0], X[:,1], c=Y, s=40, cmap=plt.cm.Spectral)
     
