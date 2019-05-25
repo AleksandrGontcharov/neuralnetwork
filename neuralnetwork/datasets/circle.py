@@ -60,16 +60,61 @@ def load_data_multiple_circles(size=200, number_of_blobs = 2):
     # Returns
         Tuple of Numpy arrays: X, Y.
     """
-    X, Y = load_data(size=size)
-    # Initialize the X's
-    x_min, x_max = X[:,0].min(), X[:,0].max()
-    y_min, y_max = X[:,1].min(), X[:,1].max()
-    x_length = x_max - x_min
-    x_width = y_max - y_min
-    
-    X2 = X + 2*x_length
-    X_new = np.concatenate((X,X2))
-    Y_new = np.concatenate((Y,Y))
+    if number_of_blobs == 2:
+        X, Y = load_data(size=size)
+        # Initialize the X's
+        x_min, x_max = X[:,0].min(), X[:,0].max()
+        y_min, y_max = X[:,1].min(), X[:,1].max()
+        x_length = x_max - x_min
+        x_width = y_max - y_min
+
+        X2 = X + 2*x_length
+        X_new = np.concatenate((X,X2))
+        Y_new = np.concatenate((Y,Y))
+    elif number_of_blobs == 3:
+        X, Y = load_data(size=size)
+        # Initialize the X's
+        # Initialize the X's
+        x_min, x_max = X[:,0].min(), X[:,0].max()
+        y_min, y_max = X[:,1].min(), X[:,1].max()
+        x_length = x_max - x_min
+        x_width = y_max - y_min
+
+        X3 = X.copy()
+
+        X3[:,0] = X3[:,0]+2*x_length
+
+
+        X_new = np.concatenate((X,X3))
+        Y_new = np.concatenate((Y,Y))
+
+        X4 = X.copy()
+        X4[:,1] = X4[:,1]+2*x_length
+
+        X_new = np.concatenate((X_new,X4))
+        Y_new = np.concatenate((Y_new,Y))
+        
+    elif number_of_blobs == 4:
+        X, Y = load_data(size=size)    
+        # Initialize the X's
+        x_min, x_max = X[:,0].min(), X[:,0].max()
+        y_min, y_max = X[:,1].min(), X[:,1].max()
+        x_length = x_max - x_min
+        x_width = y_max - y_min
+
+        X3 = X.copy()
+
+        X3[:,0] = X3[:,0]+2*x_length
+
+
+        X_new = np.concatenate((X,X3))
+        Y_new = np.concatenate((Y,Y))
+
+        X4 = X_new.copy()
+        X4[:,1] = X4[:,1]+2*x_length
+
+        X_new = np.concatenate((X_new,X4))
+        Y_new = np.concatenate((Y_new,Y_new))
 
 
 
